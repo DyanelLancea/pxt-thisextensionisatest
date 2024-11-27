@@ -56,7 +56,7 @@ namespace TelloControl {
     export function setupUDPConnection(): void {
         let retries = 3;
         while (retries > 0) {
-            sendAT(`AT+CIPSTART="UDP","192.168.10.1",8889`, 1000);
+            sendAT(`AT+CIPSTART="UDP","${telloIP}",${commandPort}`, 1000);
             if (response.includes("OK")) {
                 break;
             }
@@ -74,7 +74,17 @@ namespace TelloControl {
     // Function to connect to Tello Wi-Fi (1)
     //% block="Connect to Tello Wi-Fi SSID %ssid"
     export function connectToWiFi(ssid: string): void {
-        sendAT(`AT+CWJAP="${ssid}",""`, 5000); // No password is required
+        let retries = 3;
+        while (retries > 0) {
+            sendAT(`AT+CWJAP="${ssid}",""`, 5000);// No password is required
+            if (response.includes("OK")) {
+                break;
+            }
+            retries--;
+        }
+        if (retries === 0) {
+            basic.showString("WiFi Fail");
+        }
         readResponse(); // Display response on micro:bit
     }
 }
