@@ -1,12 +1,11 @@
-//% color=#126180 icon="\uf0fb" block="ThisExtensionIsATest"
 namespace TelloControl {
     // Initialize the variables
     let telloIP = "192.168.10.1";
     let commandPort = 8889;
+    let response = serial.readString();
 
     // Function to read and display response on the micro:bit
     function readResponse(): void {
-        let response = serial.readString();
         if (response.includes("OK")) {
             basic.showString("Connected");
         } else {
@@ -55,6 +54,18 @@ namespace TelloControl {
     // Seting up UDP connection (2) and initialise the Tello into SDK mode (3)
     //% block="Initialise ESP and Tello connection"
     export function setupUDPConnection(): void {
+        let retries = 3;
+        while (retries > 0) {
+            sendAT(`AT+CIPSTART="UDP","192.168.10.1",8889`, 1000);
+            if (response.includes("OK")) {
+                break;
+            }
+            retries--;
+        }
+        if (retries === 0) {
+            basic.showString("UDP Fail");
+        }
+
         sendAT(`AT+CIPSTART="UDP","${telloIP}",${commandPort}`, 1000);
         sendCommandToTello("command"); //Enter SDK mode
         basic.pause(500); // Allow some time for connection setup
