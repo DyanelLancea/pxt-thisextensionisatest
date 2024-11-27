@@ -1,3 +1,4 @@
+//% color=#126180 icon="\uf0fb" block="Tello Control"
 namespace TelloControl {
     // Initialize the variables
     let telloIP = "192.168.10.1";
@@ -41,6 +42,7 @@ namespace TelloControl {
         sendAT("AT+CWMODE=1", 1000); // Set ESP8266 to Station Mode (STA mode)
         sendAT("AT+CWQAP", 1000); // Disconnect from current Wi-Fi
         sendAT("AT", 1000); // Check if ESP8266 responds with "OK"
+        readResponse()
     }
     //% block="Land"
     export function land(): void {
@@ -62,9 +64,7 @@ namespace TelloControl {
             }
             retries--;
         }
-        if (retries === 0) {
-            basic.showString("UDP Fail");
-        }
+        
 
         sendAT(`AT+CIPSTART="UDP","${telloIP}",${commandPort}`, 1000);
         sendCommandToTello("command"); //Enter SDK mode
@@ -82,9 +82,7 @@ namespace TelloControl {
             }
             retries--;
         }
-        if (retries === 0) {
-            basic.showString("WiFi Fail");
-        }
+        
         readResponse(); // Display response on micro:bit
     }
 }
