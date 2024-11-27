@@ -38,39 +38,11 @@ namespace TelloControl {
         serial.setTxBufferSize(128);
         serial.setRxBufferSize(128);
 
-        sendAT("AT+RST", 2000); // Reset the ESP8266
+        sendAT("AT+RST", 500); // Reset the ESP8266
         sendAT("AT+CWMODE=1", 1000); // Set ESP8266 to Station Mode (STA mode)
         sendAT("AT+CWQAP", 1000); // Disconnect from current Wi-Fi
         sendAT("AT", 1000); // Check if ESP8266 responds with "OK"
     }
-
-    //% block="Flip"
-    export function flip(): void {
-        sendCommandToTello("flip b");
-    }
-    //% block="Emergency Stop"
-    export function emergency(): void {
-        sendCommandToTello("emergency");
-    }
-    //% block="Move Right"
-    export function right(): void {
-        sendCommandToTello("right");
-    }
-
-    //% block="Move Left"
-    export function left(): void {
-        sendCommandToTello("left");
-    }
-
-    //% block="Move Back"
-    export function back(): void {
-        sendCommandToTello("back");
-    }
-    //% block="Move Forward"
-    export function forward(): void {
-        sendCommandToTello("forward");
-    }
-
     //% block="Land"
     export function land(): void {
         sendCommandToTello("land");
@@ -84,15 +56,14 @@ namespace TelloControl {
     //% block="Initialise ESP and Tello connection"
     export function setupUDPConnection(): void {
         sendAT(`AT+CIPSTART="UDP","${telloIP}",${commandPort}`, 1000);
-        basic.pause(1000); // Allow some time for connection setup
-        sendCommandToTello("command");
-        basic.pause(1000); // Allow some time for connection setup
+        sendCommandToTello("command"); //Enter SDK mode
+        basic.pause(500); // Allow some time for connection setup
     }
 
     // Function to connect to Tello Wi-Fi (1)
     //% block="Connect to Tello Wi-Fi SSID %ssid"
     export function connectToWiFi(ssid: string): void {
-        sendAT(`AT+CWJAP="${ssid}",""`, 8000); // No password is required
+        sendAT(`AT+CWJAP="${ssid}",""`, 5000); // No password is required
         readResponse(); // Display response on micro:bit
     }
 }
