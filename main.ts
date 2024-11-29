@@ -34,13 +34,13 @@ namespace TelloControl {
     //% rx.defl=SerialPin.P12
     export function initESP8266(tx: SerialPin, rx: SerialPin): void {
         serial.redirect(tx, rx, BaudRate.BaudRate115200); // Redirect TX and RX
-        basic.pause(500);
+        basic.pause(100);
         serial.setTxBufferSize(128);
         serial.setRxBufferSize(128);
 
-        sendAT("AT+RST", 500); // Reset the ESP8266
-        sendAT("AT+CWMODE=1", 500); // Set ESP8266 to Station Mode (STA mode)
-        sendAT("AT+CWQAP", 500); // Disconnect from current Wi-Fi
+        sendAT("AT+RST", 2000); // Reset the ESP8266
+        sendAT("AT+CWMODE=1", 1000); // Set ESP8266 to Station Mode (STA mode)
+        sendAT("AT+CWQAP", 1000); // Disconnect from current Wi-Fi
         sendAT("AT", 500); // Check if ESP8266 responds with "OK"
         readResponse()
     }
@@ -56,7 +56,7 @@ namespace TelloControl {
     // Seting up UDP connection (2) and initialise the Tello into SDK mode (3)
     //% block="Initialise ESP and Tello connection"
     export function setupUDPConnection(): void {
-        sendAT(`AT+CIPSTART="UDP","${telloIP}",${commandPort}`, 500);
+        sendAT(`AT+CIPSTART="UDP","${telloIP}",${commandPort}`, 1000);
         sendCommandToTello("command"); //Enter SDK mode
         basic.pause(500); // Allow some time for connection setup
     }
@@ -64,7 +64,7 @@ namespace TelloControl {
     // Function to connect to Tello Wi-Fi (1)
     //% block="Connect to Tello Wi-Fi SSID %ssid Password %pwd"
     export function connectToWiFi(ssid: string, pwd: string): void {
-        sendAT(`AT+CWJAP="${ssid}","${pwd}"`, 500);
+        sendAT(`AT+CWJAP="${ssid}","${pwd}"`, 5000);
         readResponse(); // Display response on micro:bit
     }
 }
