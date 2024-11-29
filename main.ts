@@ -118,15 +118,17 @@
 
     // Seting up UDP connection (2) and initialise the Tello into SDK mode (3)
     //% block="Initialise ESP and Tello connection"
-    export function setupUDPConnection(): boolean {
+    export function setupUDPConnection() {
         if (!wifi_connected) {
             basic.showString("No WiFi")
-            return false
+            return
         }
-        sendAT(`AT+CIPSTART="UDP","${telloIP}",${commandPort}`, 2000);
-        if (!readResponse()) return false
+
+        // Setup UDP connection
+        sendAT(`AT+CIPSTART="UDP","${telloIP}",${commandPort}`, 2000)
+        if (!readResponse()) return
 
         // Enter SDK mode
-        return sendCommandToTello("command")
-    }
+        sendCommandToTello("command")
+        }
 }
