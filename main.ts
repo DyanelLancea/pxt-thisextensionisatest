@@ -5,12 +5,13 @@
             ConnectWifi,
         }
     let wifi_connected: boolean = false
-    let telloIP = "192.168.10.1";
-    let commandPort = 8889;
-    let response = serial.readString();
+    let connectionInitialized = false // to track connection state
+    let telloIP = "192.168.10.1"
+    let response = ""
+    let recvString = ""
+    let commandPort = 8889
     let scanWIFIAPFlag = 0
     let currentCmd: Cmd = Cmd.None
-    let recvString = ""
 
         
     const EspEventSource = 3000
@@ -23,80 +24,43 @@
     function sendAT(command: string, wait: number = 0) {
         serial.writeString(`${command}\u000D\u000A`)
         basic.pause(wait)
+        response = serial.readString() // Capture response immediately after sending
     }
 
 // Function to read and display response on the micro:bit
-    function readResponse(): void {
-        if (response.includes("OK")) {
-            basic.showString("Connected");
+    function readResponse(): boolean {
+        if (response && response.includes("OK")) {
+            basic.showString("Connected")
+            return true
         } else {
-            basic.showString("Failed");
-            basic.showString(response); // Display the actual error
+            basic.showString("Failed")
+            return false
         }
     }
-    function sendCommandToTello(command: string): void {
-         // Assuming you're already connected to Tello WiFi, have set up UDP connection and initialisd the Tello into SDK mode
-        sendAT(`AT+CIPSEND=${command.length}`, 500);  // Send command length and command
-        serial.writeString(command + "\r\n"); // Send the actual command
+    function sendCommandToTello(command: string): boolean {
+        if (!wifi_connected) {
+            basic.showString("No WiFi")
+            return false
+        }
+        // Assuming you're already connected to Tello WiFi, have set up UDP connection and initialisd the Tello into SDK mode
+        // Send command length first
+        sendAT(`AT+CIPSEND=${command.length}`, 500)
+        if (!readResponse()) return false
+
+        // Send the actual command
+        serial.writeString(command + "\r\n")
         basic.pause(500);
-        readResponse(); // Display Tello's response
+        
+        return readResponse(); // Display Tello's response
         }
     function restEsp8266() {
-        sendAT("AT+RESTORE", 1000) // restore to factory settings
-        sendAT("AT+RST", 1000) // rest
+        sendAT("AT+RESTORE", 2000) // restore to factory settings
+        sendAT("AT+RST", 2000) // rest
         serial.readString()
-        sendAT("AT+CWMODE=1", 500) // set to STA mode
-        sendAT("AT+SYSTIMESTAMP=1634953609130", 100) // Set local timestamp.
+        basic.pause(1000)
+        sendAT("AT+CWMODE=1", 1000) // set to STA mode
         sendAT(`AT+CIPSNTPCFG=1,8,"ntp1.aliyun.com","0.pool.ntp.org","time.google.com"`, 100)
         basic.pause(3000)
-    }
-
-    function scanWIFIAP(ssid: string) {
-
-        let scanflag = 0
-        let mscnt = 0
-        recvString = " "
-        sendAT(`AT+CWLAPOPT=1,2,-100,255`)
-        sendAT(`AT+CWLAP`)
-        while (!(scanflag)) {
-
-            recvString = recvString + serial.readString()
-            basic.pause(1)
-            mscnt += 1
-            if (mscnt >= 3000) {
-                scanWIFIAPFlag = 0
-                break
-            }
-
-            if (recvString.includes("+CWLAP:(")) {
-
-                mscnt = 0
-                recvString = recvString.slice(recvString.indexOf("+CWLAP:("))
-                scanflag = 1
-                while (1) {
-
-                    recvString += serial.readString()
-                    basic.pause(1)
-                    mscnt += 1
-
-                    // OLED.clear()
-                    // OLED.writeStringNewLine(_recvString)
-                    if (recvString.includes("OK") || mscnt >= 3000) {
-
-                        if (mscnt >= 3000) {
-                            scanWIFIAPFlag = 0
-                        } else if (recvString.includes(ssid)) {
-                            scanWIFIAPFlag = 1
-                        } else {
-                            scanWIFIAPFlag = 0
-                        }
-                        break
-                    }
-                }
-            }
-
-        }
-        recvString = " "
     }
 
     /**
@@ -109,10 +73,11 @@
     //% pw.defl=your_password weight=100
     export function initWIFI(tx: SerialPin, rx: SerialPin, baudrate: BaudRate) {
         serial.redirect(tx, rx, BaudRate.BaudRate115200)
-        basic.pause(100)
-        serial.setTxBufferSize(128)
-        serial.setRxBufferSize(128)
+        basic.pause(1000)
+        serial.setTxBufferSize(256)
+        serial.setRxBufferSize(256)
         restEsp8266()
+        connectionInitialized = true
     }
 
     /**
@@ -122,45 +87,46 @@
     //% ssid.defl=your_ssid
     //% pw.defl=your_pwd weight=95
     export function connectWifi(ssid: string, pw: string) {
+        if (!connectionInitialized) {
+            basic.showString("Init first!")
+            return
+        }
 
-        while (1) {
-            scanWIFIAP(ssid)
-            if (scanWIFIAPFlag) {
-                currentCmd = Cmd.ConnectWifi
-                sendAT(`AT+CWJAP="${ssid}","${pw}"`) // connect to Wifi router
-                control.waitForEvent(EspEventSource, EspEventValue.ConnectWifi)
-                while (!wifi_connected) {
-                    restEsp8266()
-                    sendAT(`AT+CWJAP="${ssid}","${pw}"`)
-                    control.waitForEvent(EspEventSource, EspEventValue.ConnectWifi)
-                }
-                break
-            } else {
+        let attempts = 0
+        const maxAttempts = 3
+
+        while (attempts < maxAttempts) {
+            basic.showNumber(attempts + 1)  // Show attempt number
+            sendAT(`AT+CWJAP="${ssid}","${pw}"`, 10000)  // Increased timeout
+
+            if (response.includes("OK") || response.includes("CONNECTED")) {
+                wifi_connected = true
+                basic.showIcon(IconNames.Yes)
+                return
+            }
+
+            attempts++
+            if (attempts < maxAttempts) {
                 restEsp8266()
-                currentCmd = Cmd.ConnectWifi
-                sendAT(`AT+CWJAP="${ssid}","${pw}"`)
-                control.waitForEvent(EspEventSource, EspEventValue.ConnectWifi)
-                if (wifi_connected) {
-                    break
-                }
+                basic.pause(2000)  // Wait between attempts
             }
         }
-    }
 
-    /**
-     * Warning: Deprecated.
-     * Check if ESP8266 successfully connected to Wifi
-     */
-    //% block="Wifi connected %State" weight=70
-    export function wifiState(state: boolean) {
-        return wifi_connected === state
+        basic.showIcon(IconNames.No)
+        wifi_connected = false
     }
 
     // Seting up UDP connection (2) and initialise the Tello into SDK mode (3)
     //% block="Initialise ESP and Tello connection"
-    export function setupUDPConnection(): void {
-        sendAT(`AT+CIPSTART="UDP","${telloIP}",${commandPort}`, 1000);
-        sendCommandToTello("command"); //Enter SDK mode
-        basic.pause(500); // Allow some time for connection setup
+    export function setupUDPConnection(): boolean {
+        if (!wifi_connected) {
+            basic.showString("No WiFi")
+            return false
         }
+        sendAT(`AT+CIPSTART="UDP","${telloIP}",${commandPort}`, 2000);
+        if (!readResponse()) return false
+
+        // Enter SDK mode
+        return sendCommandToTello("command")
+    }
 }
