@@ -1,3 +1,4 @@
+//% color=#126180 icon="\uf0fb" block="ThisExtensionIsATest"
 namespace TelloControl {
     // Initialize the variables
     let telloIP = "192.168.10.1";
@@ -28,7 +29,7 @@ namespace TelloControl {
     }
 
     // Function to initialize ESP8266 and redirect serial communication
-    //% block="initialize ESP8266 with TX %tx| RX %rx"
+    //% block="Initialize ESP8266 with TX %tx| RX %rx"
     //% tx.defl=SerialPin.P8
     //% rx.defl=SerialPin.P12
     export function initESP8266(tx: SerialPin, rx: SerialPin): void {
@@ -61,9 +62,9 @@ namespace TelloControl {
     }
 
     // Function to connect to Tello Wi-Fi (1)
-    //% block="Connect to Tello Wi-Fi SSID %ssid"
-    export function connectToWiFi(ssid: string): void {
-        sendAT(`AT+CWJAP="${ssid}",""`, 500);// No password is required
+    //% block="Connect to Tello Wi-Fi SSID %ssid Password %pwd"
+    export function connectToWiFi(ssid: string, pwd: string): void {
+        sendAT(`AT+CWJAP="${ssid}","${pwd}"`, 500);
         readResponse(); // Display response on micro:bit
     }
 }
