@@ -123,8 +123,8 @@
     export function initWIFI(tx: SerialPin, rx: SerialPin, baudrate: BaudRate) {
         serial.redirect(tx, rx, BaudRate.BaudRate115200)
         basic.pause(1000)
-        serial.setTxBufferSize(256)
-        serial.setRxBufferSize(256)
+        serial.setTxBufferSize(9216)
+        serial.setRxBufferSize(9216)
         restEsp8266()
         connectionInitialized = true
     }
